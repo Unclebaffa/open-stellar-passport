@@ -10,11 +10,13 @@ import {
   ExternalLink,
   Fingerprint,
   Github,
+  Key,
   Lock,
   ScanLine,
   ShieldCheck,
   X,
 } from "./components/icons";
+import { Mark, MarkChip, Wordmark } from "./components/Brand";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import {
@@ -121,12 +123,15 @@ export default function App() {
       <div className="min-h-screen">
         <Header />
 
-      <main className="mx-auto max-w-[1180px] px-6 pb-28">
+      <main className="mx-auto max-w-[1180px] px-6">
         <div className="grid gap-x-12 gap-y-10 pt-12 lg:grid-cols-[1fr_minmax(380px,430px)]">
           {/* LEFT — hero + flow */}
           <div>
             <Hero />
-            <div className="mt-12 space-y-4">
+            <div id="demo" className="mt-16 scroll-mt-24">
+              <SectionLabel n="01">Live demo — prove &amp; verify, end to end</SectionLabel>
+            </div>
+            <div className="mt-5 space-y-4">
               <StepMint
                 cap={cap}
                 setCap={setCap}
@@ -161,6 +166,9 @@ export default function App() {
         </div>
 
         <Threats />
+        <HowItWorks />
+        <TechSection />
+        <Comparison />
       </main>
         <Footer />
         <Toaster position="bottom-right" />
@@ -174,32 +182,24 @@ export default function App() {
 function Header() {
   return (
     <header className="sticky top-0 z-30 border-b border-black/[0.06] bg-ink-950/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-[1180px] items-center justify-between px-6 py-3.5">
-        <div className="flex items-center gap-2.5">
-          <Logo />
-          <span className="text-[15px] font-semibold tracking-tight">Agent Passport</span>
-          <span className="ml-2 hidden items-center gap-1.5 rounded-full border border-black/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted sm:inline-flex">
+      <div className="mx-auto flex max-w-[1180px] items-center justify-between px-6 py-3">
+        <div className="flex items-center gap-3">
+          <Wordmark />
+          <span className="ml-1 hidden items-center gap-1.5 rounded-full border border-black/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted sm:inline-flex">
             <span className="h-1 w-1 rounded-full bg-verified" /> testnet
           </span>
         </div>
-        <nav className="flex items-center gap-1.5 text-sm">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <a
-                href={EXPLORER(CONTRACTS.validator)}
-                target="_blank"
-                className="hidden items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-mono text-xs text-muted transition-colors hover:bg-black/5 hover:text-fg sm:inline-flex"
-              >
-                {CONTRACTS.validator.slice(0, 4)}…{CONTRACTS.validator.slice(-4)}
-                <ExternalLink width={13} height={13} />
-              </a>
-            </TooltipTrigger>
-            <TooltipContent className="font-mono text-xs">AgentPassportValidator · open in Stellar Expert</TooltipContent>
-          </Tooltip>
+        <nav className="flex items-center gap-1 text-sm">
+          <a href="#demo" className="hidden rounded-lg px-3 py-1.5 text-muted transition-colors hover:bg-black/5 hover:text-fg md:inline-block">
+            Live demo
+          </a>
+          <a href="#tech" className="hidden rounded-lg px-3 py-1.5 text-muted transition-colors hover:bg-black/5 hover:text-fg md:inline-block">
+            Under the hood
+          </a>
           <a
             href={REPO}
             target="_blank"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-black/10 px-3 py-1.5 text-fg/90 transition-colors hover:border-black/20 hover:bg-black/5"
+            className="ml-1 inline-flex items-center gap-1.5 rounded-lg bg-ink px-3 py-1.5 text-sm font-medium text-white transition-transform hover:-translate-y-px"
           >
             <Github width={15} height={15} /> GitHub
           </a>
@@ -209,32 +209,48 @@ function Header() {
   );
 }
 
-function Logo() {
-  return (
-    <span className="grid h-7 w-7 place-items-center rounded-lg bg-ink">
-      <ShieldCheck width={16} height={16} className="text-stellar" />
-    </span>
-  );
-}
-
 function Hero() {
   return (
-    <section>
+    <section className="relative">
+      <Mark
+        aria-hidden
+        ticks
+        accent="rgba(253,218,36,0.1)"
+        width={280}
+        height={280}
+        className="pointer-events-none absolute -right-28 -top-40 -z-10 text-black/[0.025]"
+      />
       <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-black/[0.02] px-3 py-1 font-mono text-[11px] uppercase tracking-[0.15em] text-muted">
-        <span className="h-1.5 w-1.5 rounded-full bg-cyan" /> Stellar Hacks · Real-World ZK
+        <span className="h-1.5 w-1.5 rounded-full bg-stellar" /> Stellar Hacks · Real-World ZK
       </div>
       <h1 className="mt-5 text-[2.6rem] font-bold leading-[1.05] tracking-[-0.03em] text-fg sm:text-[3.1rem]">
         Let AI agents pay
         <br />
         without trusting them
-        <span className="text-violet-soft">.</span>
+        <span className="text-stellar-deep">.</span>
       </h1>
       <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted">
         A single zero-knowledge proof — verified on-chain in Soroban — attests an agent is backed by a verified human,
         is Sybil-resistant, and is solvent for its spend cap. Identity and balance stay hidden.
       </p>
 
-      <ul className="mt-7 grid max-w-xl gap-px overflow-hidden rounded-xl border border-black/[0.07] bg-black/[0.015] sm:grid-cols-1">
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <a
+          href="#demo"
+          className="inline-flex items-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-white shadow-[0_8px_24px_-10px_rgba(10,10,10,0.5)] transition-transform hover:-translate-y-px"
+        >
+          Try the live demo <ArrowRight width={16} height={16} />
+        </a>
+        <a
+          href={EXPLORER(CONTRACTS.validator)}
+          target="_blank"
+          className="inline-flex items-center gap-1.5 font-mono text-xs text-muted transition-colors hover:text-fg"
+        >
+          live on testnet <ExternalLink width={13} height={13} />
+        </a>
+      </div>
+
+      <ul className="mt-8 grid max-w-xl gap-px overflow-hidden rounded-xl border border-black/[0.07] bg-black/[0.015] sm:grid-cols-1">
         <Claim icon={<Fingerprint width={17} height={17} />} title="Personhood, not PII">
           Merkle membership in an attested registry — no identity database to breach.
         </Claim>
@@ -245,6 +261,15 @@ function Hero() {
           Proof-of-funds shows <span className="text-fg/80">balance ≥ cap</span> without revealing the balance.
         </Claim>
       </ul>
+
+      <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-[11px] text-faint">
+        <span className="uppercase tracking-[0.18em]">Built on</span>
+        {["Circom", "Groth16", "BN254", "Soroban", "Poseidon2", "ERC-8004"].map((t) => (
+          <span key={t} className="text-muted">
+            {t}
+          </span>
+        ))}
+      </div>
     </section>
   );
 }
@@ -620,6 +645,16 @@ function Console({ lines }: { lines: string[] }) {
   );
 }
 
+function SectionLabel({ n, children, id }: { n: string; children: ReactNode; id?: string }) {
+  return (
+    <div id={id} className="flex items-center gap-3 scroll-mt-24">
+      <span className="font-mono text-[11px] font-medium text-stellar-deep">{n}</span>
+      <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-faint">{children}</span>
+      <span className="h-px flex-1 bg-black/[0.07]" />
+    </div>
+  );
+}
+
 function Threats() {
   const items = [
     { icon: <Fingerprint width={18} height={18} />, t: "Identity loss", d: "No KYC honeypot — personhood is a Merkle proof; no PII ever touches the chain." },
@@ -627,17 +662,12 @@ function Threats() {
     { icon: <Lock width={18} height={18} />, t: "Sybil farms", d: "A nullifier binds one identity to one agent; replays are rejected on-chain." },
   ];
   return (
-    <section className="mt-20">
-      <div className="mb-6 flex items-center gap-3">
-        <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-faint">What it stops</span>
-        <span className="h-px flex-1 bg-black/[0.07]" />
-      </div>
-      <div className="grid gap-px overflow-hidden rounded-2xl border border-black/[0.07] bg-black/[0.04] sm:grid-cols-3">
+    <section className="mt-24">
+      <SectionLabel n="02">What it stops</SectionLabel>
+      <div className="mt-6 grid gap-px overflow-hidden rounded-2xl border border-black/[0.07] bg-black/[0.05] sm:grid-cols-3">
         {items.map((i) => (
-          <div key={i.t} className="bg-ink-950/80 p-6">
-            <span className="grid h-9 w-9 place-items-center rounded-lg bg-black/5 text-muted ring-1 ring-black/10">
-              {i.icon}
-            </span>
+          <div key={i.t} className="bg-paper p-6">
+            <span className="grid h-9 w-9 place-items-center rounded-lg bg-ink text-stellar">{i.icon}</span>
             <div className="mt-4 text-[15px] font-semibold tracking-tight">{i.t}</div>
             <p className="mt-1.5 text-sm leading-relaxed text-muted">{i.d}</p>
           </div>
@@ -647,21 +677,195 @@ function Threats() {
   );
 }
 
+function HowItWorks() {
+  const steps = [
+    { k: "Mint", icon: <Key width={18} height={18} />, d: "The human owner builds a proof from their registry membership, agent id and balance — entirely client-side." },
+    { k: "Prove", icon: <Cpu width={18} height={18} />, d: "A Groth16 proof over BN254 attests personhood, a one-time nullifier and balance ≥ cap, revealing none of them." },
+    { k: "Gate", icon: <ShieldCheck width={18} height={18} />, d: "Soroban verifies on-chain and mints an attestation; x402 settles a payment only within the proven cap." },
+  ];
+  return (
+    <section className="mt-24">
+      <SectionLabel n="03">How it works</SectionLabel>
+      <div className="mt-6 grid gap-4 md:grid-cols-3">
+        {steps.map((s, i) => (
+          <div key={s.k} className="relative rounded-2xl border border-black/[0.07] bg-paper p-6">
+            <div className="flex items-center justify-between">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-ink text-stellar">{s.icon}</span>
+              <span className="font-mono text-[11px] text-faint">0{i + 1}</span>
+            </div>
+            <div className="mt-4 text-[15px] font-semibold tracking-tight">{s.k}</div>
+            <p className="mt-1.5 text-sm leading-relaxed text-muted">{s.d}</p>
+            {i < 2 && (
+              <ArrowRight
+                width={18}
+                height={18}
+                className="absolute -right-[11px] top-1/2 hidden -translate-y-1/2 text-faint md:block"
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TechSection() {
+  return (
+    <section className="mt-24">
+      <SectionLabel n="04" id="tech">
+        Under the hood
+      </SectionLabel>
+      <div className="mt-6 grid gap-4 lg:grid-cols-[1.1fr_1fr]">
+        {/* circuit */}
+        <div className="rounded-2xl border border-black/[0.07] bg-paper p-6">
+          <div className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
+            <Cpu width={17} height={17} className="text-stellar-deep" /> agent_passport.circom
+          </div>
+          <p className="mt-1.5 text-sm text-muted">~9.6k constraints · proves in under a second in the browser.</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <IoBox tone="private" title="Private — stays on device" items={["privateKey", "balance", "pathElements[20]", "pathIndices"]} />
+            <IoBox tone="public" title="Public — sent on-chain" items={["registryRoot", "nullifierHash", "agentId", "spendCap"]} />
+          </div>
+          <div className="mt-4 space-y-1.5 font-mono text-[11px] text-muted">
+            <div>publicKey = Poseidon2(privateKey)</div>
+            <div>MerkleProof(publicKey, path) == registryRoot</div>
+            <div>nullifierHash == Poseidon2(privateKey, agentId)</div>
+            <div className="text-stellar-deep">balance ≥ spendCap</div>
+          </div>
+        </div>
+        {/* contracts */}
+        <div className="rounded-2xl border border-black/[0.07] bg-paper p-6">
+          <div className="text-[15px] font-semibold tracking-tight">Deployed on Stellar testnet</div>
+          <div className="mt-4 space-y-3">
+            <ContractRow name="AgentPassportValidator" sub="stateful policy · nullifier store" id={CONTRACTS.validator} />
+            <ContractRow name="CircomGroth16Verifier" sub="BN254 native precompile" id={CONTRACTS.verifier} />
+          </div>
+          <div className="mt-5 border-t border-black/[0.06] pt-4 text-xs leading-relaxed text-muted">
+            Reuses{" "}
+            <a className="text-fg underline-offset-2 hover:underline" href="https://github.com/NethermindEth/stellar-private-payments" target="_blank">
+              Nethermind's verifier
+            </a>{" "}
+            and targets{" "}
+            <a className="text-fg underline-offset-2 hover:underline" href="https://github.com/trionlabs/stellar-8004" target="_blank">
+              ERC-8004 on Soroban
+            </a>{" "}
+            for agent identity.
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function IoBox({ tone, title, items }: { tone: "private" | "public"; title: string; items: string[] }) {
+  const priv = tone === "private";
+  return (
+    <div className={cx("rounded-xl border p-3.5", priv ? "border-black/[0.07] bg-black/[0.02]" : "border-stellar/40 bg-stellar/[0.08]")}>
+      <div className="mb-2 flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-faint">
+        {priv ? <Lock width={12} height={12} /> : <ScanLine width={12} height={12} />}
+        {title}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {items.map((it) => (
+          <span key={it} className="rounded-md bg-paper px-1.5 py-0.5 font-mono text-[11px] text-fg/80 ring-1 ring-black/[0.06]">
+            {it}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ContractRow({ name, sub, id }: { name: string; sub: string; id: string }) {
+  return (
+    <a
+      href={EXPLORER(id)}
+      target="_blank"
+      className="group flex items-center justify-between rounded-xl border border-black/[0.07] bg-black/[0.015] p-3 transition-colors hover:border-black/15 hover:bg-black/[0.03]"
+    >
+      <div className="min-w-0">
+        <div className="text-sm font-medium">{name}</div>
+        <div className="truncate font-mono text-[11px] text-faint">
+          {id.slice(0, 10)}…{id.slice(-6)} · {sub}
+        </div>
+      </div>
+      <ExternalLink width={15} height={15} className="shrink-0 text-faint transition-colors group-hover:text-fg" />
+    </a>
+  );
+}
+
+function Comparison() {
+  const rows = [
+    ["On Stellar / Soroban", false, true],
+    ["Verified fully on-chain", false, true],
+    ["Proof-of-funds spend cap", false, true],
+    ["Anti-Sybil nullifier", true, true],
+    ["No PII / no honeypot", false, true],
+  ] as const;
+  return (
+    <section className="mt-24">
+      <SectionLabel n="05">Why it's different</SectionLabel>
+      <div className="mt-6 overflow-hidden rounded-2xl border border-black/[0.07]">
+        <div className="grid grid-cols-[1fr_auto_auto] items-center bg-black/[0.03] px-5 py-3 text-[13px] font-medium">
+          <span className="text-muted">Capability</span>
+          <span className="w-28 text-center text-muted">Existing*</span>
+          <span className="w-28 text-center">Agent Passport</span>
+        </div>
+        {rows.map(([label, other, ours], i) => (
+          <div
+            key={label}
+            className={cx("grid grid-cols-[1fr_auto_auto] items-center px-5 py-3 text-sm", i % 2 ? "bg-paper" : "bg-black/[0.012]")}
+          >
+            <span className="text-fg/90">{label}</span>
+            <span className="flex w-28 justify-center">{other ? <YesNo yes /> : <YesNo />}</span>
+            <span className="flex w-28 justify-center">{ours ? <YesNo yes brand /> : <YesNo />}</span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-2.5 font-mono text-[10.5px] text-faint">* SelfClaw, risotto-passport, World ID + AgentKit — EVM/Solana, personhood verified off-chain.</p>
+    </section>
+  );
+}
+
+function YesNo({ yes, brand }: { yes?: boolean; brand?: boolean }) {
+  if (!yes) return <X width={15} height={15} className="text-faint" />;
+  return (
+    <span className={cx("grid h-5 w-5 place-items-center rounded-full", brand ? "bg-ink text-stellar" : "bg-verified/15 text-verified")}>
+      <Check width={12} height={12} />
+    </span>
+  );
+}
+
 function Footer() {
   return (
-    <footer className="border-t border-black/[0.06] py-8">
-      <div className="mx-auto flex max-w-[1180px] flex-col items-center gap-2 px-6 text-center font-mono text-[11px] text-faint">
-        <div>
-          reuses{" "}
-          <a className="hover:text-muted" href="https://github.com/NethermindEth/stellar-private-payments" target="_blank">
-            nethermind/circom-groth16-verifier
-          </a>{" "}
-          · targets{" "}
-          <a className="hover:text-muted" href="https://github.com/trionlabs/stellar-8004" target="_blank">
-            stellar-8004
+    <footer className="mt-24 border-t border-black/[0.07] bg-black/[0.015]">
+      <div className="mx-auto flex max-w-[1180px] flex-col gap-6 px-6 py-10 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <MarkChip size={34} />
+          <div>
+            <div className="text-sm font-semibold tracking-tight">Agent Passport</div>
+            <div className="font-mono text-[11px] text-faint">ZK-gated agent payments on Stellar</div>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[11px] text-muted">
+          <a className="hover:text-fg" href="#demo">
+            Live demo
+          </a>
+          <a className="hover:text-fg" href="#tech">
+            Under the hood
+          </a>
+          <a className="inline-flex items-center gap-1 hover:text-fg" href={EXPLORER(CONTRACTS.validator)} target="_blank">
+            Contract <ExternalLink width={11} height={11} />
+          </a>
+          <a className="inline-flex items-center gap-1 hover:text-fg" href={REPO} target="_blank">
+            <Github width={12} height={12} /> GitHub
           </a>
         </div>
-        <div>research prototype · not audited · testnet only</div>
+      </div>
+      <div className="border-t border-black/[0.05] px-6 py-4">
+        <div className="mx-auto max-w-[1180px] font-mono text-[10.5px] text-faint">
+          research prototype · not audited · testnet only · built for Stellar Hacks: Real-World ZK
+        </div>
       </div>
     </footer>
   );
