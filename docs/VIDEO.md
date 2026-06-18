@@ -2,10 +2,10 @@
 
 Two renders exist:
 
-- **`docs/demo-narrated.mp4`** — captioned screencast **with voiceover**, composed
-  and rendered in Remotion (see [`../video/`](../video/)). The narration is
-  Windows SAPI TTS (no API key, robotic) — swap `video/public/vo/*.wav` for your
-  own voice or a premium TTS and re-render.
+- **`docs/demo-narrated.mp4`** — captioned screencast **with an ElevenLabs
+  voiceover** (voice *Roger*), composed and rendered in Remotion (see
+  [`../video/`](../video/)). Swap `video/public/narration.mp3` for a different
+  voice and re-render.
 - **`docs/demo.mp4`** — the same screencast, **silent** (captions only).
 
 The table below is the narration script (also used to generate the TTS).

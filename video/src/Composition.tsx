@@ -1,18 +1,13 @@
-import { AbsoluteFill, Audio, OffthreadVideo, Sequence, staticFile, useVideoConfig } from "remotion";
-import { VO } from "./vo";
+import { AbsoluteFill, Audio, OffthreadVideo, staticFile } from "remotion";
+import { PLAYBACK_RATE } from "./vo";
 
-// The captioned screencast (silent) as the visual layer, with per-scene
-// voiceover audio sequenced over it.
+// Captioned screencast (silent) stretched to the voiceover length, with the
+// ElevenLabs narration as the audio track.
 export const Narrated: React.FC = () => {
-  const { fps } = useVideoConfig();
   return (
     <AbsoluteFill style={{ backgroundColor: "#000" }}>
-      <OffthreadVideo src={staticFile("screencast.mp4")} />
-      {VO.map((v, i) => (
-        <Sequence key={i} from={Math.round(v.from * fps)} layout="none">
-          <Audio src={staticFile(v.file)} />
-        </Sequence>
-      ))}
+      <OffthreadVideo src={staticFile("screencast.mp4")} playbackRate={PLAYBACK_RATE} muted />
+      <Audio src={staticFile("narration.mp3")} />
     </AbsoluteFill>
   );
 };

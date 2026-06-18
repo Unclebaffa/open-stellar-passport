@@ -46,7 +46,10 @@ async function setup() {
     document.body.appendChild(card);
   });
 }
-const sleep = (ms) => page.waitForTimeout(ms);
+// Stretch all dwell times so the screencast co-terminates with the ~122.5s
+// ElevenLabs voiceover (same scene order → roughly tracks the narration).
+const SCALE = Number(process.env.DEMO_SCALE || 1.226);
+const sleep = (ms) => page.waitForTimeout(Math.round(ms * SCALE));
 async function cap(html, ms = 0) {
   await page.evaluate((h) => { const c = document.getElementById("cap"); c.innerHTML = h; c.style.opacity = h ? "1" : "0"; }, html);
   if (ms) await sleep(ms);

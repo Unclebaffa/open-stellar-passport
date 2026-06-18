@@ -42,3 +42,4 @@ _vf_*.png
 .agents/
 _tts_test.wav
 skills-lock.json
+docs/ElevenLabs_*
