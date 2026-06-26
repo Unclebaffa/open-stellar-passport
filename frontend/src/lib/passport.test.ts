@@ -207,3 +207,161 @@ describe("PassportStore — circuit breaker", () => {
     });
   });
 });
+
+describe("PassportStore — expiry", () => {
+  let store: PassportStore;
+
+  afterEach(() => {
+    store.reset();
+    vi.useRealTimers();
+  });
+
+  it("issues a passport with correct issuedAt and expiresAt (30-day default TTL)", () => {
+    store = new PassportStore();
+    vi.useFakeTimers({ now: new Date("2025-01-01T00:00:00.000Z").getTime() });
+
+    const record = store.issuePassport("agent-exp-1", 100, "hash1");
+
+    expect(record.issuedAt).toBe("2025-01-01T00:00:00.000Z");
+    expect(record.expiresAt).toBe("2025-01-31T00:00:00.000Z");
+    expect(record.spendCapXlm).toBe(100);
+    expect(record.agentId).toBe("agent-exp-1");
+  });
+
+  it("issues a passport with a custom TTL", () => {
+    store = new PassportStore();
+    vi.useFakeTimers({ now: new Date("2025-01-01T00:00:00.000Z").getTime() });
+
+    const record = store.issuePassport("agent-exp-ttl", 50, "hash-ttl", 7);
+
+    expect(record.expiresAt).toBe("2025-01-08T00:00:00.000Z");
+  });
+
+  it("authorizes spend for a valid (non-expired) passport", () => {
+    store = new PassportStore();
+    vi.useFakeTimers({ now: new Date("2025-01-01T00:00:00.000Z").getTime() });
+    store.issuePassport("agent-exp-2", 100, "hash2");
+
+    // Still within 30-day window
+    vi.setSystemTime(new Date("2025-01-15T00:00:00.000Z").getTime());
+
+    expect(store.authorizePassportSpend("agent-exp-2", 50)).toEqual({ ok: true });
+  });
+
+  it("rejects spend for an expired passport", () => {
+    store = new PassportStore();
+    vi.useFakeTimers({ now: new Date("2025-01-01T00:00:00.000Z").getTime() });
+    store.issuePassport("agent-exp-3", 100, "hash3");
+
+    // Advance past the 30-day expiry
+    vi.setSystemTime(new Date("2025-02-05T00:00:00.000Z").getTime());
+
+    const result = store.authorizePassportSpend("agent-exp-3", 50);
+    expect(result).toEqual({
+      ok: false,
+      reason: "PassportExpired",
+      expiredAt: "2025-01-31T00:00:00.000Z",
+    });
+  });
+
+  it("does not apply expiry check for agents without a stored passport", () => {
+    // Existing tests create stores without calling issuePassport — they must
+    // still pass spend-limit / circuit-breaker checks unaffected.
+    store = new PassportStore();
+    expect(store.authorizePassportSpend("agent-no-record", 10)).toEqual({ ok: true });
+  });
+
+  it("getPassport returns the stored record", () => {
+    store = new PassportStore();
+    vi.useFakeTimers({ now: new Date("2025-03-01T00:00:00.000Z").getTime() });
+    store.issuePassport("agent-get", 200, "hashGet");
+
+    const p = store.getPassport("agent-get");
+    expect(p).toBeDefined();
+    expect(p!.zkProofHash).toBe("hashGet");
+    expect(p!.spendCapXlm).toBe(200);
+  });
+
+  it("getPassport returns undefined for unknown agentId", () => {
+    store = new PassportStore();
+    expect(store.getPassport("nobody")).toBeUndefined();
+  });
+});
+
+describe("PassportStore — renewal", () => {
+  let store: PassportStore;
+
+  afterEach(() => {
+    store.reset();
+    vi.useRealTimers();
+  });
+
+  it("extends expiresAt without changing spendCapXlm", () => {
+    store = new PassportStore();
+    vi.useFakeTimers({ now: new Date("2025-01-01T00:00:00.000Z").getTime() });
+    store.issuePassport("agent-renew-1", 200, "hashR1");
+
+    // Advance past expiry then renew
+    vi.setSystemTime(new Date("2025-02-05T00:00:00.000Z").getTime());
+    const result = store.renewPassport("agent-renew-1", "hashR1");
+
+    // 2025-02-05 + 30 days = 2025-03-07
+    expect(result).toEqual({ ok: true, expiresAt: "2025-03-07T00:00:00.000Z" });
+
+    const passport = store.getPassport("agent-renew-1")!;
+    expect(passport.spendCapXlm).toBe(200);
+    expect(passport.expiresAt).toBe("2025-03-07T00:00:00.000Z");
+  });
+
+  it("authorizes spend after renewal of an expired passport", () => {
+    store = new PassportStore();
+    vi.useFakeTimers({ now: new Date("2025-01-01T00:00:00.000Z").getTime() });
+    store.issuePassport("agent-renew-2", 100, "hashR2");
+
+    vi.setSystemTime(new Date("2025-02-05T00:00:00.000Z").getTime());
+
+    // Confirm expired
+    expect(store.authorizePassportSpend("agent-renew-2", 50)).toMatchObject({
+      ok: false,
+      reason: "PassportExpired",
+    });
+
+    // Renew
+    const renewal = store.renewPassport("agent-renew-2", "hashR2");
+    expect(renewal.ok).toBe(true);
+
+    // Now should pass
+    expect(store.authorizePassportSpend("agent-renew-2", 50)).toEqual({ ok: true });
+  });
+
+  it("supports a custom TTL on renewal", () => {
+    store = new PassportStore();
+    vi.useFakeTimers({ now: new Date("2025-01-01T00:00:00.000Z").getTime() });
+    store.issuePassport("agent-renew-ttl", 100, "hashRttl");
+
+    vi.setSystemTime(new Date("2025-02-05T00:00:00.000Z").getTime());
+    const result = store.renewPassport("agent-renew-ttl", "hashRttl", 7);
+
+    // 2025-02-05 + 7 days = 2025-02-12
+    expect(result).toEqual({ ok: true, expiresAt: "2025-02-12T00:00:00.000Z" });
+  });
+
+  it("rejects renewal with wrong zkProofHash", () => {
+    store = new PassportStore();
+    store.issuePassport("agent-renew-3", 100, "hashR3");
+
+    expect(store.renewPassport("agent-renew-3", "wrongHash")).toEqual({
+      ok: false,
+      reason: "InvalidProofHash",
+    });
+  });
+
+  it("rejects renewal for unknown agentId", () => {
+    store = new PassportStore();
+
+    expect(store.renewPassport("unknown-agent", "anyHash")).toEqual({
+      ok: false,
+      reason: "PassportNotFound",
+    });
+  });
+});
