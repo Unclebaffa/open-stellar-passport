@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { globalPassportStore } from "../../../../src/lib/passport-store";
-import { isRevoked } from "../../../../src/lib/passport/revocation-store";
+import { globalPassportStore } from "../../../../../src/lib/passport-store";
+import { isRevoked } from "../../../../../src/lib/passport/revocation-store";
 
 /**
  * GET /api/protocol/passport/authorize?agentId=<id>&amount=<xlm>
