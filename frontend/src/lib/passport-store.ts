@@ -1,3 +1,13 @@
+export const DEFAULT_PASSPORT_TTL_DAYS = Number(process.env.PASSPORT_TTL_DAYS ?? 30);
+
+export interface PassportRecord {
+  agentId: string;
+  issuedAt: string;   // ISO timestamp
+  expiresAt: string;  // ISO timestamp — issuedAt + TTL_DAYS
+  spendCapXlm: number;
+  zkProofHash: string;
+}
+
 export interface SpendLimits {
   dailyMaxXlm?: number;
   weeklyMaxXlm?: number;
@@ -34,6 +44,54 @@ function utcWeekStart(ts: number): number {
 export class PassportStore {
   private events: AuthorizeEvent[] = [];
   private cbStates = new Map<string, { failures: number; revoked: boolean }>();
+  private passports = new Map<string, PassportRecord>();
+
+  // ------------------------------------------------------------------ issuance
+
+  /**
+   * Creates and stores a new PassportRecord with issuedAt = now and
+   * expiresAt = now + ttlDays.
+   */
+  issuePassport(
+    agentId: string,
+    spendCapXlm: number,
+    zkProofHash: string,
+    ttlDays = DEFAULT_PASSPORT_TTL_DAYS,
+  ): PassportRecord {
+    const issuedAt = new Date().toISOString();
+    const expiresAt = new Date(
+      Date.now() + ttlDays * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    const record: PassportRecord = { agentId, issuedAt, expiresAt, spendCapXlm, zkProofHash };
+    this.passports.set(agentId, record);
+    return record;
+  }
+
+  /** Returns the stored passport for an agent, or undefined if not found. */
+  getPassport(agentId: string): PassportRecord | undefined {
+    return this.passports.get(agentId);
+  }
+
+  /**
+   * Re-issues a new expiresAt from now without changing spendCapXlm.
+   * Requires the matching zkProofHash to prevent unauthorized extensions.
+   */
+  renewPassport(
+    agentId: string,
+    zkProofHash: string,
+    ttlDays = DEFAULT_PASSPORT_TTL_DAYS,
+  ): { ok: true; expiresAt: string } | { ok: false; reason: string } {
+    const passport = this.passports.get(agentId);
+    if (!passport) return { ok: false, reason: "PassportNotFound" };
+    if (passport.zkProofHash !== zkProofHash) return { ok: false, reason: "InvalidProofHash" };
+
+    passport.expiresAt = new Date(
+      Date.now() + ttlDays * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    return { ok: true, expiresAt: passport.expiresAt };
+  }
+
+  // ------------------------------------------------------------------ registration
 
   register(agentId: string, config?: PassportConfig): void {
     if (config?.circuitBreaker) {
@@ -47,11 +105,19 @@ export class PassportStore {
     state.revoked = true;
   }
 
+  // ------------------------------------------------------------------ authorization
+
   authorizePassportSpend(
     agentId: string,
     amount: number,
     config?: PassportConfig,
-  ): { ok: boolean; reason?: string } {
+  ): { ok: boolean; reason?: string; expiredAt?: string } {
+    // Expiry check — runs before all other checks
+    const passport = this.passports.get(agentId);
+    if (passport && new Date(passport.expiresAt) < new Date()) {
+      return { ok: false, reason: "PassportExpired", expiredAt: passport.expiresAt };
+    }
+
     if (config?.circuitBreaker && !this.cbStates.has(agentId)) {
       this.cbStates.set(agentId, { failures: 0, revoked: false });
     }
@@ -118,5 +184,9 @@ export class PassportStore {
   reset(): void {
     this.events.length = 0;
     this.cbStates.clear();
+    this.passports.clear();
   }
 }
+
+/** Singleton store shared across API routes. */
+export const globalPassportStore = new PassportStore();
