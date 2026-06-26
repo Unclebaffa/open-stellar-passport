@@ -1,6 +1,10 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { evaluatePaymentAuthorization, parseContractError } from "./passport";
 import { PassportStore } from "./passport-store";
+import {
+  revokePassport as revocationStoreRevoke,
+  _reset as _resetRevocation,
+} from "./passport/revocation-store";
 
 describe("parseContractError", () => {
   it("maps Soroban contract error codes to generated validator names", () => {
@@ -362,6 +366,56 @@ describe("PassportStore — renewal", () => {
     expect(store.renewPassport("unknown-agent", "anyHash")).toEqual({
       ok: false,
       reason: "PassportNotFound",
+    });
+  });
+});
+
+describe("PassportStore — revocation via revocation-store", () => {
+  let store: PassportStore;
+
+  beforeEach(() => {
+    _resetRevocation();
+  });
+
+  afterEach(() => {
+    store?.reset();
+    _resetRevocation();
+    vi.useRealTimers();
+  });
+
+  it("authorizes spend before passport is revoked", () => {
+    store = new PassportStore();
+    expect(store.authorizePassportSpend("agent-rv-1", 10)).toEqual({ ok: true });
+  });
+
+  it("returns PassportRevoked after revokePassport() is called", () => {
+    store = new PassportStore();
+    revocationStoreRevoke("agent-rv-2");
+    expect(store.authorizePassportSpend("agent-rv-2", 10)).toEqual({
+      ok: false,
+      reason: "PassportRevoked",
+    });
+  });
+
+  it("revocation takes priority over expiry check", () => {
+    store = new PassportStore();
+    vi.useFakeTimers({ now: new Date("2025-01-01T00:00:00.000Z").getTime() });
+    store.issuePassport("agent-rv-3", 100, "hash-rv-3");
+    vi.setSystemTime(new Date("2025-02-05T00:00:00.000Z").getTime()); // past expiry
+    revocationStoreRevoke("agent-rv-3");
+    // Should see PassportRevoked, not PassportExpired
+    expect(store.authorizePassportSpend("agent-rv-3", 10)).toEqual({
+      ok: false,
+      reason: "PassportRevoked",
+    });
+  });
+
+  it("revocation is case-insensitive and whitespace-tolerant", () => {
+    store = new PassportStore();
+    revocationStoreRevoke("  AGENT-RV-4  ");
+    expect(store.authorizePassportSpend("agent-rv-4", 10)).toEqual({
+      ok: false,
+      reason: "PassportRevoked",
     });
   });
 });
