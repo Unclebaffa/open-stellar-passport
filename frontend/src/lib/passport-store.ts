@@ -8,6 +8,8 @@ export interface PassportRecord {
   expiresAt: string;  // ISO timestamp — issuedAt + TTL_DAYS
   spendCapXlm: number;
   zkProofHash: string;
+  issuer?: string;
+  suspended?: boolean;
 }
 
 export interface SpendLimits {
@@ -59,12 +61,13 @@ export class PassportStore {
     spendCapXlm: number,
     zkProofHash: string,
     ttlDays = DEFAULT_PASSPORT_TTL_DAYS,
+    issuer?: string,
   ): PassportRecord {
     const issuedAt = new Date().toISOString();
     const expiresAt = new Date(
       Date.now() + ttlDays * 24 * 60 * 60 * 1000,
     ).toISOString();
-    const record: PassportRecord = { agentId, issuedAt, expiresAt, spendCapXlm, zkProofHash };
+    const record: PassportRecord = { agentId, issuedAt, expiresAt, spendCapXlm, zkProofHash, issuer };
     this.passports.set(agentId, record);
     return record;
   }
@@ -195,6 +198,13 @@ export class PassportStore {
 
   getPassportCount(): number {
     return this.passports.size;
+  }
+
+  suspendPassport(agentId: string): void {
+    const passport = this.passports.get(agentId);
+    if (passport) {
+      passport.suspended = true;
+    }
   }
 
   reset(): void {
