@@ -12,6 +12,9 @@ import {
 import { resetRevocationStore } from "@/lib/passport/revocation"
 import { resetTransferStore } from "@/lib/passport/transfer"
 import { resetAuditStore } from "@/lib/passport/audit"
+import { POST as grantPost } from "@/app/api/protocol/passport/route"
+import { POST as verifyBatchPost } from "@/app/api/passports/verify-batch/route"
+import { GET as adminAuditGet } from "@/app/api/admin/audit/route"
 
 // Mock next/server for route handler tests
 vi.mock("next/server", () => {
@@ -156,7 +159,6 @@ describe("Admin Audit Log", () => {
   // ─── Route Integration Tests ────────────────────────────────────
   describe("Route Integration: admin actions append audit entries", () => {
     it("POST /api/protocol/passport (grant) appends a grant audit entry", async () => {
-      const { POST } = await import("@/app/api/protocol/passport/route")
 
       const req = new Request("http://localhost/api/protocol/passport", {
         method: "POST",
@@ -170,7 +172,7 @@ describe("Admin Audit Log", () => {
         }),
       })
 
-      const res = await POST(req)
+      const res = await grantPost(req)
       expect(res.status).toBe(201)
 
       const entries = listAdminAuditEntries({ action: "grant" })
@@ -183,7 +185,6 @@ describe("Admin Audit Log", () => {
     })
 
     it("POST /api/passports/verify-batch (batch_verify) appends a batch_verify audit entry", async () => {
-      const { POST } = await import("@/app/api/passports/verify-batch/route")
 
       issuePassport("p1", ADMIN, ADMIN)
       issuePassport("p2", ADMIN, ADMIN)
@@ -197,7 +198,7 @@ describe("Admin Audit Log", () => {
         body: JSON.stringify({ passportIds: ["p1", "p2"] }),
       })
 
-      const res = await POST(req)
+      const res = await verifyBatchPost(req)
       expect(res.status).toBe(200)
 
       const entries = listAdminAuditEntries({ action: "batch_verify" })
@@ -211,14 +212,13 @@ describe("Admin Audit Log", () => {
     })
 
     it("GET /api/admin/audit returns entries newest first", async () => {
-      const { GET } = await import("@/app/api/admin/audit/route")
 
       appendAdminAuditEntry({ action: "grant", actor: ADMIN, target: "p1" })
       appendAdminAuditEntry({ action: "revoke", actor: ADMIN, target: "p2" })
       appendAdminAuditEntry({ action: "batch_verify", actor: ADMIN, target: "p3" })
 
       const req = new Request("http://localhost/api/admin/audit")
-      const res = await GET(req)
+      const res = await adminAuditGet(req)
       expect(res.status).toBe(200)
 
       const body = await res.json() as { entries: AdminAuditEntry[]; total: number }
@@ -229,14 +229,13 @@ describe("Admin Audit Log", () => {
     })
 
     it("GET /api/admin/audit supports filter query params", async () => {
-      const { GET } = await import("@/app/api/admin/audit/route")
 
       appendAdminAuditEntry({ action: "grant", actor: ADMIN, target: "p1" })
       appendAdminAuditEntry({ action: "revoke", actor: ADMIN, target: "p2" })
       appendAdminAuditEntry({ action: "grant", actor: TARGET_ADMIN, target: "p3" })
 
       const req = new Request("http://localhost/api/admin/audit?action=grant&actor=" + ADMIN)
-      const res = await GET(req)
+      const res = await adminAuditGet(req)
       expect(res.status).toBe(200)
 
       const body = await res.json() as { entries: AdminAuditEntry[]; total: number }
