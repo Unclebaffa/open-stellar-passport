@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { globalPassportStore } from "../../../../src/lib/passport-store";
 import { isRevoked } from "../../../../src/lib/passport/revocation-store";
 
@@ -16,7 +16,7 @@ export function setMockChecks(updates: Partial<typeof mockChecks>) {
 
 const startTime = Date.now();
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   // Determine health status
   let status: "healthy" | "degraded" | "unhealthy" = "healthy";
 
